@@ -1,0 +1,16 @@
+{
+    "name": "innoboxrr/support",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Innoboxrr\\Support\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Homero Raul",
+            "email": "h.raulvc@gmail.com"
+        }
+    ],
+    "require": {}
+}

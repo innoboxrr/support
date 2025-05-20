@@ -1,0 +1,12 @@
+/vendor
+.phpunit.cache
+.env
+*.log
+*.cache
+.DS_Store
+/node_modules/
+/resources/vue/node_modules/
+/resources/vue/package-lock.json
+/resources/vue/.env
+/resources/vue/python/env/*
+docs/~$DevelopChecklist.xlsx
