@@ -15,5 +15,15 @@
     "require-dev": {
         "orchestra/testbench": "^9",
         "innoboxrr/larapack-generator": "^5.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Innoboxrr\\Support\\Providers\\AppServiceProvider",
+                "Innoboxrr\\Support\\Providers\\AuthServiceProvider",
+                "Innoboxrr\\Support\\Providers\\EventServiceProvider",
+                "Innoboxrr\\Support\\Providers\\RouteServiceProvider"
+            ]
+        }
     }
 }
