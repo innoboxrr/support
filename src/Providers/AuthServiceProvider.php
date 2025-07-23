@@ -17,7 +17,7 @@ class AuthServiceProvider extends ServiceProvider
     public function mapPolicies()
     {
         // Define una clave única para el caché
-        $cacheKey = 'auth_policies';
+        $cacheKey = 'support_auth_policies';
 
         // Intenta recuperar el mapeo de políticas desde el caché
         $policies = Cache::remember($cacheKey, now()->addDay(), function () {
