@@ -5,6 +5,7 @@ namespace Innoboxrr\Support\Jobs;
 use Illuminate\Support\Facades\App;
 use InvalidArgumentException;
 use Carbon\CarbonInterval;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 class DispatchJob
 {
@@ -34,90 +35,88 @@ class DispatchJob
         if (!class_exists($jobClass)) {
             throw new InvalidArgumentException("La clase del job {$jobClass} no existe.");
         }
-    
-        // Instanciar el job con los parámetros
+
         $job = new $jobClass(...$params);
-    
+
         // Si es local, ejecuta el job de forma síncrona
         if ($this->isLocal) {
-            return dispatch_sync($job); // Usar `dispatch_sync` con la instancia correcta
+            // Compatibilidad con versiones de Laravel
+            return function_exists('dispatch_sync')
+                ? dispatch_sync($job)
+                : dispatch_now($job);
         }
-    
+
         // Configurar conexión y cola
-        $job->onConnection($this->connection)
-            ->onQueue($this->queue);
-    
+        if (method_exists($job, 'onConnection')) {
+            $job->onConnection($this->connection);
+        }
+        if (method_exists($job, 'onQueue')) {
+            $job->onQueue($this->queue);
+        }
+
         // Configurar retraso
-        if ($this->delay) {
+        if ($this->delay && method_exists($job, 'delay')) {
             $job->delay($this->delay);
         }
-    
-        // Configurar prioridad (si el sistema de colas lo soporta)
-        if (!is_null($this->priority)) {
+
+        // Configurar prioridad
+        if (!is_null($this->priority) && method_exists($job, 'setPriority')) {
             $job->setPriority($this->priority);
         }
-    
-        // Despachar el job
-        return dispatch($job);
-    }    
 
-    /**
-     * Configura la conexión del job.
-     *
-     * @param string $connection
-     * @return $this
-     */
+        return dispatch($job);
+    }
+
     public function setConnection(string $connection): self
     {
         $this->connection = $connection;
         return $this;
     }
 
-    /**
-     * Configura la cola del job.
-     *
-     * @param string $queue
-     * @return $this
-     */
     public function setQueue(string $queue): self
     {
         $this->queue = $queue;
         return $this;
     }
 
-    /**
-     * Configura el retraso del job.
-     *
-     * @param CarbonInterval|int $delay Tiempo en segundos o instancia de CarbonInterval.
-     * @return $this
-     */
     public function setDelay(CarbonInterval|int $delay): self
     {
         $this->delay = $delay instanceof CarbonInterval ? $delay : CarbonInterval::seconds($delay);
         return $this;
     }
 
-    /**
-     * Configura la prioridad del job.
-     *
-     * @param int $priority
-     * @return $this
-     */
     public function setPriority(int $priority): self
     {
         $this->priority = $priority;
         return $this;
     }
 
-    /**
-     * Método estático para crear una instancia configurada.
-     *
-     * @param string $connection
-     * @param string $queue
-     * @return self
-     */
+    public function setConfig(string $connection, string $queue): self
+    {
+        $this->connection = $connection;
+        $this->queue = $queue;
+        return $this;
+    }
+
     public static function config(string $connection = 'redis', string $queue = 'default'): self
     {
         return new self($connection, $queue);
+    }
+
+    /**
+     * Despacha un job de forma rápida.
+     *
+     * @param string $class
+     * @param string $connection
+     * @param string $queue
+     * @param mixed ...$params
+     * @return mixed
+     * @throws InvalidArgumentException
+     */
+    public static function run($class, $connection = 'redis', $queue = 'default', ...$params): mixed
+    {
+        $instance = new self();
+        $instance->setConfig($connection, $queue);
+        return $instance->dispatch($class, ...$params);
     }
 }
