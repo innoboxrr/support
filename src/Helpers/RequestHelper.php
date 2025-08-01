@@ -27,4 +27,23 @@ class RequestHelper
         return $cookiesArray->get($key, null);
     }
 
+    /**
+     * Ejecuta un FormRequest simulando un request y usuario autenticado.
+     * Útil para Jobs, seeds, procesos en background, etc.
+     *
+     * @param string $formRequestClass
+     * @param array $data
+     * @param \App\Models\User $user
+     * @return mixed
+     * @throws \Illuminate\Validation\ValidationException|\Illuminate\Auth\Access\AuthorizationException
+     */
+    public static function handleFormRequestWithUser($formRequestClass, $method, $data, $user)
+    {
+        $request = $formRequestClass::create('/fake-url', $method, $data);
+        $request->setUserResolver(fn() => $user);
+        $request->validateResolved();
+        return $request->handle();
+    }
+
+
 }
