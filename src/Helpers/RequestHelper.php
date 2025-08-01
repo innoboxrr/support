@@ -41,10 +41,18 @@ class RequestHelper
     {
         $request = $formRequestClass::create('/fake-url', $method, $data);
         $request->setUserResolver(fn() => $user);
+
+        // Necesario para autorizar y validar igual que en ciclo HTTP
+        $request->setContainer(app());
+        $request->setRedirector(app('redirect'));
+
         $request->validateResolved();
-        if(!method_exists($request, 'handle')) {
+
+        if (!method_exists($request, 'handle')) {
             throw new \RuntimeException("The request class {$formRequestClass} must implement a handle method.");
         }
+
         return $request->handle();
     }
+
 }
