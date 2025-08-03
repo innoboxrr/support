@@ -37,8 +37,9 @@ class RequestHelper
      * @return mixed
      * @throws \Illuminate\Validation\ValidationException|\Illuminate\Auth\Access\AuthorizationException
      */
-    public static function handleFormRequestWithUser($formRequestClass, $method, $data, $user)
+    public static function handleFormRequestWithUser($formRequestClass, $data, $user)
     {
+        $method = $data['_http_method'] ?? 'POST';
         $request = $formRequestClass::create('/fake-url', $method, $data);
         $request->setUserResolver(fn() => $user);
 
