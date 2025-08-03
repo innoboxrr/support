@@ -12,6 +12,7 @@ class DispatchJob
     private string $connection;
     private string $queue;
     private bool $isLocal;
+    private bool $forceAsync;
     private ?CarbonInterval $delay = null;
     private ?int $priority = null;
 
@@ -20,6 +21,7 @@ class DispatchJob
         $this->connection = $connection;
         $this->queue = $queue;
         $this->isLocal = App::environment('local');
+        $this->forceAsync = config('innoboxrr-support.jobs.force_async', false);
     }
 
     /**
@@ -39,7 +41,7 @@ class DispatchJob
         $job = new $jobClass(...$params);
 
         // Si es local, ejecuta el job de forma síncrona
-        if ($this->isLocal) {
+        if ($this->isLocal && !$this->forceAsync) {
             // Compatibilidad con versiones de Laravel
             return function_exists('dispatch_sync')
                 ? dispatch_sync($job)
