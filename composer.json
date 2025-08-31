@@ -25,5 +25,8 @@
                 "Innoboxrr\\Support\\Providers\\RouteServiceProvider"
             ]
         }
+    },
+    "require": {
+        "giggsey/libphonenumber-for-php": "^9.0"
     }
 }
