@@ -10,3 +10,5 @@
 /resources/vue/.env
 /resources/vue/python/env/*
 docs/~$DevelopChecklist.xlsx
+/composer.lock
+/.phpunit.result.cache
