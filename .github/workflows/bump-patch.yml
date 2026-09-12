@@ -17,6 +17,10 @@ on:
     push:
         branches:
             - master
+    # Para reintentar sin empujar un commit vacío: un re-run de GitHub reutiliza
+    # la versión del workflow compartido de la ejecución original, así que no
+    # recoge una corrección publicada después.
+    workflow_dispatch:
 
 jobs:
     tests:
@@ -24,6 +28,8 @@ jobs:
 
     bump-version:
         needs: tests
+        # Sólo master se etiqueta, también cuando se lanza a mano.
+        if: github.ref == 'refs/heads/master'
         runs-on: ubuntu-latest
 
         permissions:
