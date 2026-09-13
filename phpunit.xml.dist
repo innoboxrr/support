@@ -8,6 +8,9 @@
         <testsuite name="Package">
             <directory>tests/Package</directory>
         </testsuite>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
