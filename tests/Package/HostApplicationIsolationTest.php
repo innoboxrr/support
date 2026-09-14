@@ -2,8 +2,11 @@
 
 namespace Innoboxrr\Support\Tests\Package;
 
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as AppEventServiceProvider;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as AppRouteServiceProvider;
+use Illuminate\Support\Facades\Event;
 use Innoboxrr\Support\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -45,5 +48,14 @@ final class HostApplicationIsolationTest extends TestCase
     public function la_aplicacion_carga_sus_rutas_una_sola_vez(): void
     {
         $this->assertSame(1, self::$appRouteLoads);
+    }
+
+    #[Test]
+    public function el_correo_de_verificacion_se_registra_una_sola_vez(): void
+    {
+        $this->assertSame(
+            [SendEmailVerificationNotification::class],
+            Event::getRawListeners()[Registered::class] ?? []
+        );
     }
 }
