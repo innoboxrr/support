@@ -3,45 +3,47 @@
 namespace Innoboxrr\Support\Providers;
 
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\ServiceProvider;
 
+/**
+ * Hereda de ServiceProvider y no del AuthServiceProvider de Foundation, igual
+ * que los proveedores de rutas y de eventos: del de Foundation no se usaba
+ * nada y cada politica se registra aqui con Gate::policy().
+ */
 class AuthServiceProvider extends ServiceProvider
 {
 
-    public function boot()
+    public function boot(): void
     {
         $this->mapPolicies();
     }
 
-    public function mapPolicies()
+    public function mapPolicies(): void
     {
-        // Define una clave única para el caché
-        $cacheKey = 'support_auth_policies';
-
-        // Intenta recuperar el mapeo de políticas desde el caché
-        $policies = Cache::remember($cacheKey, now()->addDay(), function () {
-            return $this->customDiscoverPolicies();
-        });
-
-        // Registra las políticas
-        foreach ($policies as $model => $policy) {
+        // Sin cache a proposito: leerla al arrancar rompe `php artisan migrate`
+        // con CACHE_STORE=database antes de que exista la tabla `cache`, y la
+        // clave quedaba compartida con cualquier otro paquete.
+        foreach ($this->customDiscoverPolicies() as $model => $policy) {
             Gate::policy($model, $policy);
         }
     }
 
     /**
-     * Descubre las políticas de los modelos.
+     * Policies/{Modelo}Policy.php => Models/{Modelo}.php.
      *
-     * @return array
+     * @return array<class-string, class-string>
      */
-    protected function customDiscoverPolicies()
+    protected function customDiscoverPolicies(): array
     {
         $policies = [];
 
-        foreach (glob(__DIR__ . '/../Policies/*.php') as $file) {
-            $policy = 'Innoboxrr\Support\Policies\\' . substr(basename($file), 0, -4);
-            $model = 'Innoboxrr\Support\Models\\' . str_replace('Policy', '', $policy);
+        foreach (glob(__DIR__ . '/../Policies/*.php') ?: [] as $file) {
+            $name = basename($file, '.php');
+            $policy = 'Innoboxrr\Support\Policies\\' . $name;
+
+            // Con el nombre corto de la policy: con el completo la clase del
+            // modelo nunca existia.
+            $model = 'Innoboxrr\Support\Models\\' . substr($name, 0, -strlen('Policy'));
 
             if (class_exists($model) && class_exists($policy)) {
                 $policies[$model] = $policy;
