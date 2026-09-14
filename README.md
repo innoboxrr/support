@@ -8,7 +8,7 @@ This is the utility layer the other packages depend on — HTTP handling, reques
 
 | Component | Purpose |
 |---|---|
-| `Helpers/HttpHelper` | Outbound HTTP calls with consistent error handling |
+| `Helpers/HttpHelper` | `getSubdomain($host, $mainDomain)`: the subdomain of a host. Without `$mainDomain` it reads `config('app.app_host')`, which Laravel doesn't define — set it or pass the domain |
 | `Helpers/RequestHelper` | Reading and normalising incoming request data |
 | `Http/Requests/RequestFormater` | Flattens nested form data with underscores (`seo.title` → `seo_title`) so it can be stored as flat metas; see below |
 | `Jobs/DispatchJob` | Generic queued dispatch used by dependent packages |
@@ -41,8 +41,10 @@ Usually not. It arrives as a dependency of the package you actually wanted — [
 
 ```bash
 composer require innoboxrr/support
-php artisan vendor:publish --tag=innoboxrr-support-config
+php artisan vendor:publish --provider="Innoboxrr\Support\Providers\AppServiceProvider" --tag=config
 ```
+
+Full documentation of the ecosystem, in Spanish and English: <https://innoboxrr.github.io/docs/paquetes/support-traits-search>.
 
 ---
 
