@@ -1,8 +1,22 @@
 name: Tests
 
-# La definicion vive en innoboxrr/.github para que sea la misma en todo el
-# ecosistema: instala, comprueba la sintaxis, audita contra la linea base y
-# corre la suite. Aqui solo se declara cuando corre.
+# Es la copia de php-tests.yml de innoboxrr/.github, con un solo paso de más:
+# fijar COMPOSER_ROOT_VERSION a partir de VERSION. No se puede llamar al
+# reutilizable porque un workflow que llama a otro no le pasa variables de
+# entorno, y este paquete las necesita.
+#
+# Por qué. larapack-generator, la dependencia de desarrollo que trae
+# `larapack:audit`, depende a su vez de innoboxrr/support ^2.1 desde la 7.7.0.
+# Aquí innoboxrr/support es el paquete raíz, y Composer adivina su versión de
+# git: `dev-master` en master y `dev-<sha>` en un pull request. Ninguna cumple
+# ^2.1, así que Composer descartaba todas las versiones del generador desde la
+# 7.7.0 y se quedaba en la 7.6.0, con su línea base vieja. Con ^9.0 no habría
+# ninguna instalable y `composer update` fallaría. Con la versión declarada en
+# VERSION la raíz es lo que dice ser, el generador se resuelve a la última 9.x y
+# el audit se hace contra la línea base de hoy.
+#
+# Si php-tests.yml cambia, este archivo se actualiza igual. El día que el
+# reutilizable acepte la versión de la raíz como input, se vuelve a llamarlo.
 on:
     push:
         branches: [master]
@@ -10,4 +24,62 @@ on:
 
 jobs:
     tests:
-        uses: innoboxrr/.github/.github/workflows/php-tests.yml@main
+        runs-on: ubuntu-latest
+
+        strategy:
+            fail-fast: false
+            matrix:
+                php: ['8.3', '8.4']
+
+        name: PHP ${{ matrix.php }}
+
+        steps:
+            - uses: actions/checkout@v5
+
+            - name: Preparar PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  coverage: none
+
+            - name: Versión del paquete raíz
+              run: |
+                  value=$(tr -d ' \n\r' < VERSION)
+                  if [ -z "$value" ]; then
+                      echo "::error::VERSION está vacío: sin la versión de la raíz, larapack-generator no se puede instalar."
+                      exit 1
+                  fi
+                  echo "COMPOSER_ROOT_VERSION=${value}" >> "$GITHUB_ENV"
+
+            # `update` y no `install`: es una librería y no versiona el
+            # lockfile, así que la suite corre contra lo que de verdad va a
+            # resolver quien la instale.
+            - name: Instalar dependencias
+              run: composer update --prefer-dist --no-interaction --no-progress
+
+            - name: Sintaxis
+              run: |
+                  if [ -d src ]; then
+                      find src -name '*.php' -print0 | while IFS= read -r -d '' file; do
+                          php -l "$file" > /dev/null || { php -l "$file"; exit 1; }
+                      done
+                  fi
+
+            - name: Versiones resueltas
+              run: |
+                  for package in illuminate/support phpunit/phpunit innoboxrr/larapack-generator; do
+                      composer show "$package" 2>/dev/null | grep -E "^(name|versions)" || true
+                  done
+
+            # Sin el generador no hay audit, y aquí eso sólo puede significar
+            # que la resolución volvió a saltárselo: se falla en vez de avisar.
+            - name: Auditar contra la línea base del ecosistema
+              run: |
+                  if [ ! -f vendor/innoboxrr/larapack-generator/src/Commands/AuditCommand.php ]; then
+                      echo "::error::larapack-generator no quedó instalado con larapack:audit; revisa COMPOSER_ROOT_VERSION."
+                      exit 1
+                  fi
+                  php vendor/innoboxrr/larapack-generator/builder larapack:audit .
+
+            - name: Tests
+              run: vendor/bin/phpunit
